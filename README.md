@@ -1,6 +1,6 @@
-# AI-Powered Transaction Processing Pipeline
+# Transaction Processing Pipeline
 
-An asynchronous transaction processing pipeline built with FastAPI, Celery, Redis, and PostgreSQL that cleans dirty financial transaction data, performs outlier/anomaly detection, and leverages Gemini 1.5 Flash to batch-classify categories and generate narrative risk summaries.
+An asynchronous transaction processing pipeline built with FastAPI, Celery, Redis, and PostgreSQL that cleans dirty financial transaction data and performs outlier/anomaly detection.
 
 ---
 
@@ -12,20 +12,17 @@ The system operates asynchronously using a job queue architecture:
 [ Client (Browser/cURL) ]
           │ (POST /jobs/upload, GET /jobs/{id}/status, GET /jobs/{id}/results)
           ▼
-   [ FastAPI Web App ] <───────────────────┐
-     │             │ (Enqueue)             │ (Read Results)
-     │             ▼                       │
-     │      [ Redis Broker ]               │
-     │             │                       │
-     │             ▼ (Fetch Job)           │
-     │      [ Celery Worker ] ─────────────┤
-     │             │                       │
-     │             ├───────────────────────┼───────► [ Gemini 1.5 Flash API ]
-     │             ▼ (Save Results)        │          (Classification & Summarization)
-     └──────► [ PostgreSQL DB ] <──────────┘
+   [ FastAPI Web App ]
+     │             │ (Enqueue)
+     │             ▼
+     │      [ Redis Broker ]
+     │             │
+     │             ▼ (Fetch Job)
+     │      [ Celery Worker ]
+     │             │
+     │             ▼ (Save Results)
+     └──────► [ PostgreSQL DB ]
 ```
-
-The draw.io source file is available at [drawio_architecture.drawio](./drawio_architecture.drawio). You can import it into [draw.io](https://app.diagrams.net/) to view or edit the layout.
 
 ---
 
@@ -39,15 +36,7 @@ The entire pipeline is containerized and starts with a single command.
 
 ### Quick Start
 1. **Clone/Copy the project directory**
-2. **Configure Environment Variables**:
-   Copy `.env.example` to `.env` and fill in your Gemini API Key:
-   ```bash
-   cp .env.example .env
-   ```
-   Open `.env` and configure:
-   ```env
-   GEMINI_API_KEY=AIzaSy...your_gemini_api_key...
-   ```
+2. **Start the pipeline**:
 3. **Spin up the containers**:
    ```bash
    docker compose up --build
@@ -107,9 +96,7 @@ FastAPI provides an interactive Swagger UI. Once the services are running, acces
         {"merchant": "Flipkart", "total_spend": 10882.55},
         {"merchant": "Swiggy", "total_spend": 8900.20}
       ],
-      "anomaly_count": 2,
-      "narrative": "Spending patterns indicate standard utility and shopping activities. Two anomalies were detected due to international transactions with domestic brands Swiggy and Ola.",
-      "risk_level": "medium"
+      "anomaly_count": 2
     }
   }
   ```
@@ -135,8 +122,6 @@ FastAPI provides an interactive Swagger UI. Once the services are running, acces
         "account_id": "ACC003",
         "is_anomaly": false,
         "anomaly_reason": null,
-        "llm_category": null,
-        "llm_failed": false,
         "id": "c1a01b2a-71b3-469b-9830-ec38c4146bb1",
         "job_id": "8a7c29e2-2be5-4c07-b248-cb0fa0b86a41"
       }
@@ -153,8 +138,6 @@ FastAPI provides an interactive Swagger UI. Once the services are running, acces
         "account_id": "ACC004",
         "is_anomaly": true,
         "anomaly_reason": "CURRENCY_MERCHANT_MISMATCH",
-        "llm_category": null,
-        "llm_failed": false,
         "id": "e0b1c2d3-1234-5678-9abc-def012345678",
         "job_id": "8a7c29e2-2be5-4c07-b248-cb0fa0b86a41"
       }
@@ -163,16 +146,6 @@ FastAPI provides an interactive Swagger UI. Once the services are running, acces
       "Shopping": 12,
       "Food": 8,
       "Utilities": 4
-    },
-    "llm_summary": {
-      "total_spend_by_currency": {
-        "INR": 150000.50,
-        "USD": 2500.00
-      },
-      "top_3_merchants": ["Flipkart", "Swiggy", "Amazon"],
-      "anomaly_count": 2,
-      "narrative": "Spending patterns indicate standard utility and shopping activities. Two anomalies were detected...",
-      "risk_level": "medium"
     }
   }
   ```
@@ -201,7 +174,7 @@ FastAPI provides an interactive Swagger UI. Once the services are running, acces
 ## Local Development & Testing
 
 ### Running Tests
-To execute the test suite (19 test cases covering API routes, data cleaning helpers, duplicate removal, anomaly detection rules, LLM parser, and end-to-end task flows):
+To execute the test suite (covering API routes, data cleaning helpers, duplicate removal, and anomaly detection):
 
 1. **Activate local virtualenv**:
    ```bash

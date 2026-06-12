@@ -94,10 +94,7 @@ class PipelineService:
                     "category": category,
                     "account_id": account_id,
                     "is_anomaly": False,
-                    "anomaly_reason": None,
-                    "llm_category": None,
-                    "llm_raw_response": None,
-                    "llm_failed": False
+                    "anomaly_reason": None
                 }
                 cleaned_transactions.append(cleaned_row)
 
