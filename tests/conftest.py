@@ -53,28 +53,6 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 @pytest.fixture(scope="function")
-def mock_gemini():
-    """
-    Mocks the GeminiLLMService calls.
-    """
-    with patch("app.services.gemini.GeminiLLMService.classify_categories") as mock_classify, \
-         patch("app.services.gemini.GeminiLLMService.generate_summary") as mock_summary:
-        
-        # Configure default mock behaviors
-        mock_classify.return_value = {
-            "TXN1000": "Food",
-            "TXN1001": "Shopping"
-        }
-        mock_summary.return_value = {
-            "total_spend_by_currency": {"INR": 1000.0, "USD": 50.0},
-            "top_3_merchants": ["Amazon", "Swiggy", "Ola"],
-            "anomaly_count": 0,
-            "narrative": "Spending patterns look normal with low risk. Top merchant is Amazon.",
-            "risk_level": "low"
-        }
-        yield mock_classify, mock_summary
-
-@pytest.fixture(scope="function")
 def mock_celery():
     """
     Mocks the process_transaction_file.delay method to prevent actual queue submission.

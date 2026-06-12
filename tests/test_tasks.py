@@ -6,7 +6,7 @@ from app.models.job import Job, JobSummary
 from app.models.transaction import Transaction
 from app.tasks.pipeline_tasks import process_transaction_file
 
-def test_celery_pipeline_task_success(db_session, mock_gemini, tmp_path):
+def test_celery_pipeline_task_success(db_session, tmp_path):
     # Setup mock file
     csv_data = (
         "txn_id,date,merchant,amount,currency,status,category,account_id,notes\n"
@@ -51,9 +51,7 @@ def test_celery_pipeline_task_success(db_session, mock_gemini, tmp_path):
 
         # Verify category classification
         txn1000 = next(t for t in txns if t.txn_id == "TXN1000")
-        assert txn1000.category == "Food"  # Classified by mock_gemini
-        assert txn1000.llm_category == "Food"
-        assert txn1000.llm_failed is False
+        assert txn1000.category == "Uncategorised"
 
         # Verify anomalies detected
         txn1002 = next(t for t in txns if t.txn_id == "TXN1002")
@@ -67,8 +65,6 @@ def test_celery_pipeline_task_success(db_session, mock_gemini, tmp_path):
         assert float(summary.total_spend_inr) == 110.0
         assert float(summary.total_spend_usd) == 500.0
         assert summary.anomaly_count == 1
-        assert summary.risk_level == "low"  # from mock_gemini
-        assert "Spending patterns look normal" in summary.narrative
 
     finally:
         # Cleanup

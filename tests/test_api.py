@@ -57,9 +57,7 @@ def test_get_job_status_completed(client, db_session):
         total_spend_inr=Decimal("15000.50"),
         total_spend_usd=Decimal("250.00"),
         top_merchants=[{"merchant": "Flipkart", "total_spend": 15000.50}],
-        anomaly_count=1,
-        narrative="Test narrative spending",
-        risk_level="medium"
+        anomaly_count=1
     )
     db_session.add(summary)
     db_session.commit()
@@ -69,7 +67,6 @@ def test_get_job_status_completed(client, db_session):
     data = response.json()
     assert data["status"] == "completed"
     assert data["summary"]["total_spend_inr"] == 15000.50
-    assert data["summary"]["risk_level"] == "medium"
 
 def test_get_job_results_not_completed(client, db_session):
     job = Job(id="job-pending-123", filename="test.csv", status="processing")
@@ -90,9 +87,7 @@ def test_get_job_results_success(client, db_session):
         total_spend_inr=Decimal("15000.50"),
         total_spend_usd=Decimal("250.00"),
         top_merchants=[{"merchant": "Flipkart", "total_spend": 15000.50}],
-        anomaly_count=1,
-        narrative="Test narrative",
-        risk_level="medium"
+        anomaly_count=1
     )
     db_session.add(summary)
 
@@ -140,8 +135,6 @@ def test_get_job_results_success(client, db_session):
     assert data["flagged_anomalies"][0]["anomaly_reason"] == "CURRENCY_MERCHANT_MISMATCH"
     
     assert data["category_breakdown"] == {"Shopping": 1, "Food": 1}
-    assert data["llm_summary"]["risk_level"] == "medium"
-    assert data["llm_summary"]["top_3_merchants"] == ["Flipkart"]
 
 def test_list_jobs(client, db_session):
     job1 = Job(id="j-1", filename="a.csv", status="completed", row_count_clean=10, created_at=datetime(2026, 6, 12, 10, 0))
