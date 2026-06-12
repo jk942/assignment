@@ -38,7 +38,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/transactions
       - REDIS_URL=redis://redis:6379/0
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - UPLOAD_DIR=/app/uploads
     volumes:
       - shared_uploads:/app/uploads
@@ -55,7 +54,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/transactions
       - REDIS_URL=redis://redis:6379/0
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - UPLOAD_DIR=/app/uploads
     volumes:
       - shared_uploads:/app/uploads

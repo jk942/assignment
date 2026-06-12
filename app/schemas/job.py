@@ -12,8 +12,6 @@ class JobSummaryResponse(BaseModel):
     total_spend_usd: float
     top_merchants: Any
     anomaly_count: int
-    narrative: str
-    risk_level: str
 
     class Config:
         from_attributes = True
@@ -34,4 +32,3 @@ class JobResultsResponse(BaseModel):
     cleaned_transactions: List[TransactionResponse]
     flagged_anomalies: List[TransactionResponse]
     category_breakdown: Dict[str, int]
-    llm_summary: Dict[str, Any]

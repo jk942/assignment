@@ -1,5 +1,4 @@
 import os
-import json
 import logging
 from datetime import datetime
 from decimal import Decimal
@@ -8,7 +7,6 @@ from app.db.session import SessionLocal
 from app.models.job import Job, JobSummary
 from app.models.transaction import Transaction
 from app.services.pipeline import PipelineService
-from app.services.gemini import GeminiLLMService
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +16,7 @@ def process_transaction_file(job_id: str) -> str:
     Asynchronously processes the uploaded transaction CSV file:
     1. Reads and cleans transactions.
     2. Runs anomaly detection.
-    3. Batches uncategorized transactions and calls Gemini LLM for classification.
-    4. Generates a narrative summary and risk profile using Gemini LLM.
-    5. Saves all transactions and summary to PostgreSQL.
+    3. Saves all transactions and summary to PostgreSQL.
     """
     logger.info(f"Starting processing pipeline for Job: {job_id}")
     db = SessionLocal()
@@ -37,9 +33,6 @@ def process_transaction_file(job_id: str) -> str:
         db.commit()
 
         # Build absolute path to the uploaded CSV file
-        # We will look inside the uploads folder. If we are running in docker,
-        # it is typically relative or absolute.
-        # Check if file exists
         from app.core.config import settings
         file_path = os.path.join(settings.UPLOAD_DIR, f"{job_id}.csv")
         if not os.path.exists(file_path):
@@ -50,55 +43,7 @@ def process_transaction_file(job_id: str) -> str:
         cleaned_txns, raw_count, clean_count, duplicates_removed = PipelineService.clean_transactions(file_path)
         PipelineService.detect_anomalies(cleaned_txns)
 
-        # Step 3: LLM Category Classification
-        uncategorized = [t for t in cleaned_txns if t["category"] == "Uncategorised"]
-        
-        llm_service = GeminiLLMService()
-        classifications = {}
-        llm_failed = False
-        raw_response_text = ""
-
-        if uncategorized:
-            logger.info(f"Step 3: Found {len(uncategorized)} uncategorized transactions. Calling Gemini LLM.")
-            # Build mini-records for LLM input
-            llm_input = [
-                {
-                    "txn_id": t["txn_id"],
-                    "merchant": t["merchant"],
-                    "amount": t["amount"],
-                    "currency": t["currency"]
-                }
-                for t in uncategorized
-            ]
-            
-            try:
-                # Call LLM service. GeminiLLMService handles retries with backoff inside
-                classifications = llm_service.classify_categories(llm_input)
-                raw_response_text = json.dumps(classifications)
-            except Exception as e:
-                logger.error(f"Gemini LLM categorization failed for Job {job_id}: {str(e)}")
-                llm_failed = True
-                raw_response_text = f"Error calling LLM: {str(e)}"
-
-        # Apply LLM category classification results
-        for t in cleaned_txns:
-            if t["category"] == "Uncategorised":
-                txn_id = t["txn_id"]
-                t["llm_failed"] = llm_failed
-                t["llm_raw_response"] = raw_response_text
-                
-                if not llm_failed and txn_id in classifications:
-                    t["llm_category"] = classifications[txn_id]
-                    # The prompt says: "Identify transactions with missing or 'Uncategorised' category. ... Store: llm_category ... Allowed output categories: ..."
-                    # Should we also update their main category? Let's copy it to category too, or keep it in category as well. 
-                    # If we update the transaction's main category, we can set transaction.category = llm_category, but keep a record of llm_category.
-                    # Yes, updating the main category makes sense for statistics breakdown!
-                    t["category"] = classifications[txn_id]
-                else:
-                    t["llm_category"] = "Uncategorised"
-
-        # Step 5: Narrative Summary
-        # Compute aggregate metrics for summary prompt
+        # Calculate aggregate metrics for summary
         spend_by_currency = {"USD": 0.0, "INR": 0.0}
         merchant_spend = {}
         anomaly_count = 0
@@ -125,27 +70,8 @@ def process_transaction_file(job_id: str) -> str:
         top_merchants_list = sorted(merchant_spend.items(), key=lambda x: x[1], reverse=True)[:3]
         top_merchants_json = [{"merchant": m, "total_spend": amt} for m, amt in top_merchants_list]
 
-        logger.info(f"Step 5: Generating narrative summary with Gemini for Job {job_id}")
-        narrative_data = None
-        try:
-            narrative_data = llm_service.generate_summary(
-                spend_by_currency=spend_by_currency,
-                top_merchants=top_merchants_json,
-                anomaly_count=anomaly_count
-            )
-        except Exception as e:
-            logger.error(f"Gemini narrative summary generation failed for Job {job_id}: {str(e)}")
-            # Graceful fallback on LLM failure
-            narrative_data = {
-                "total_spend_by_currency": spend_by_currency,
-                "top_3_merchants": [m for m, _ in top_merchants_list],
-                "anomaly_count": anomaly_count,
-                "narrative": f"Transaction summary generated successfully (metrics only). Aggregates processed: {clean_count} transactions.",
-                "risk_level": "medium" if anomaly_count > 0 else "low"
-            }
-
-        # Step 6: Save results to database
-        logger.info(f"Step 6: Saving cleaned transactions to PostgreSQL for Job {job_id}")
+        # Step 3: Save results to database
+        logger.info(f"Step 3: Saving cleaned transactions to PostgreSQL for Job {job_id}")
         
         # Save transactions
         db_transactions = []
@@ -161,10 +87,7 @@ def process_transaction_file(job_id: str) -> str:
                 category=t["category"],
                 account_id=t["account_id"],
                 is_anomaly=t["is_anomaly"],
-                anomaly_reason=t["anomaly_reason"],
-                llm_category=t["llm_category"],
-                llm_raw_response=t["llm_raw_response"],
-                llm_failed=t["llm_failed"]
+                anomaly_reason=t["anomaly_reason"]
             )
             db.add(db_txn)
             db_transactions.append(db_txn)
@@ -175,9 +98,7 @@ def process_transaction_file(job_id: str) -> str:
             total_spend_inr=Decimal(str(spend_by_currency.get("INR", 0.0))),
             total_spend_usd=Decimal(str(spend_by_currency.get("USD", 0.0))),
             top_merchants=top_merchants_json,
-            anomaly_count=anomaly_count,
-            narrative=narrative_data["narrative"],
-            risk_level=narrative_data["risk_level"]
+            anomaly_count=anomaly_count
         )
         db.add(db_summary)
 

@@ -117,9 +117,7 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
             total_spend_inr=float(job.summary.total_spend_inr),
             total_spend_usd=float(job.summary.total_spend_usd),
             top_merchants=job.summary.top_merchants,
-            anomaly_count=job.summary.anomaly_count,
-            narrative=job.summary.narrative,
-            risk_level=job.summary.risk_level
+            anomaly_count=job.summary.anomaly_count
         )
 
     return JobStatusResponse(
@@ -164,25 +162,10 @@ def get_job_results(job_id: str, db: Session = Depends(get_db)):
     for t in transactions:
         category_breakdown[t.category] = category_breakdown.get(t.category, 0) + 1
 
-    # Form llm_summary
-    llm_summary = {}
-    if job.summary:
-        llm_summary = {
-            "total_spend_by_currency": {
-                "INR": float(job.summary.total_spend_inr),
-                "USD": float(job.summary.total_spend_usd)
-            },
-            "top_3_merchants": [item.get("merchant") for item in job.summary.top_merchants if isinstance(item, dict)],
-            "anomaly_count": job.summary.anomaly_count,
-            "narrative": job.summary.narrative,
-            "risk_level": job.summary.risk_level
-        }
-
     return JobResultsResponse(
         cleaned_transactions=cleaned_transactions,
         flagged_anomalies=flagged_anomalies,
-        category_breakdown=category_breakdown,
-        llm_summary=llm_summary
+        category_breakdown=category_breakdown
     )
 
 

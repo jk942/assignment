@@ -18,9 +18,6 @@ class Transaction(Base):
     account_id = Column(String(100), nullable=False, index=True)
     is_anomaly = Column(Boolean, nullable=False, default=False)
     anomaly_reason = Column(String(255), nullable=True)
-    llm_category = Column(String(100), nullable=True)
-    llm_raw_response = Column(Text, nullable=True)
-    llm_failed = Column(Boolean, nullable=False, default=False)
 
     # Relationships
     job = relationship("Job", back_populates="transactions")

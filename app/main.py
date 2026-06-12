@@ -4,7 +4,7 @@ from app.api.endpoints import router as api_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="Asynchronous processing pipeline for cleaning financial transaction data, detecting anomalies, and generating AI insights.",
+    description="Asynchronous processing pipeline for cleaning financial transaction data and detecting anomalies.",
     version="1.0.0"
 )
 

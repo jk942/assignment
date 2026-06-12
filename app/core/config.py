@@ -2,7 +2,7 @@ import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "AI-Powered Transaction Processing Pipeline"
+    PROJECT_NAME: str = "Transaction Processing Pipeline"
     
     # Database Configuration
     # Fallback to sqlite for testing or local run if database URL is not set
@@ -10,9 +10,6 @@ class Settings(BaseSettings):
     
     # Redis Configuration
     REDIS_URL: str = "redis://localhost:6379/0"
-    
-    # Gemini API Configuration
-    GEMINI_API_KEY: str = ""
     
     # Uploads Configuration
     UPLOAD_DIR: str = "./uploads"
