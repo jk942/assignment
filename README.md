@@ -192,7 +192,7 @@ To execute the test suite (covering API routes, data cleaning helpers, duplicate
 1. **Median Anomaly Base**:
    - The median outlier rule (`amount > 3 × median`) is computed based on transactions *inside the current batch/job*. This allows self-contained batch updates and prevents cross-job database read bottleneck during cleaning.
 2. **Missing fields fallbacks**:
-   - If `category` is missing, it is filled with `"Uncategorised"`. Uncategorized records are grouped and sent to Gemini in a single prompt for batch classification.
+   - If `category` is missing, it is filled with `"Uncategorised"`.
    - If `txn_id` is missing, we auto-generate a unique ID prefixed with `TXN_GEN_` using UUIDv4.
 3. **USD Domestic Mismatch**:
    - Swiggy, Ola, and IRCTC are flagged as anomalies if the currency is exactly `"USD"`.
@@ -209,12 +209,10 @@ If transaction traffic scales by 100×, the current single-server Docker Compose
 1. **Network I/O & Disk Bottleneck on Uploads**:
    - Uploading large CSVs directly to the FastAPI container local disk degrades storage throughput, depleting disk space and memory during multi-multipart handling.
 2. **Celery Worker Concurrency**:
-   - A single Celery worker processing long-running CSV parses, database inserts, and Gemini API calls will back up the Redis queue.
+   - A single Celery worker processing long-running CSV parses and database inserts will back up the Redis queue.
 3. **Database Write Congestion**:
    - Single-connection SQLAlchemy transactions insert records one-by-one. 100x volume will locks tables and spike CPU usage.
-4. **LLM API Rate Limits**:
-   - Direct HTTP batch calls to Gemini 1.5 Flash free-tier will trigger `429 Too Many Requests` rate limiting.
-5. **Single-Point Redis Queue**:
+4. **Single-Point Redis Queue**:
    - Memory limits on a single Redis node risk queue crashes if tasks pile up.
 
 ### Enterprise Redesign Strategy
@@ -245,10 +243,6 @@ To support 100x scale, we recommend migrating to the following architecture:
        │                               └───────┬───────┘  Kubernetes queue depth)
        │ (Fetch file)                          │
        └───────────────────┬───────────────────┘
-                           ▼
-                   ┌───────────────┐
-                   │  Gemini API   │ (Enterprise Tier with Provisioned Throughput)
-                   └───────┬───────┘
                            ▼
                    ┌───────────────┐
                    │  Postgres DB  │ (Aurora Serverless with Read Replicas &
