@@ -36,8 +36,8 @@ The entire pipeline is containerized and starts with a single command.
 
 ### Quick Start
 1. **Clone/Copy the project directory**
-2. **Start the pipeline**:
-3. **Spin up the containers**:
+2. **Create a local `.env` file** from `.env.example` if you want to override default settings.
+3. **Start the pipeline**:
    ```bash
    docker compose up --build
    ```
@@ -170,6 +170,18 @@ FastAPI provides an interactive Swagger UI. Once the services are running, acces
   ```
 
 ---
+
+## Environment Variables
+
+The service supports configuration through environment variables or a local `.env` file. Example variables include:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@db:5432/transactions
+REDIS_URL=redis://redis:6379/0
+UPLOAD_DIR=/app/uploads
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_API_URL=https://gemini.googleapis.com/v1/models/gemini-1.5-flash:generateText
+```
 
 ## Local Development & Testing
 

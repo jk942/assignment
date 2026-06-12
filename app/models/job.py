@@ -31,6 +31,8 @@ class JobSummary(Base):
     top_merchants = Column(JSON, nullable=False)  # stores top merchants list/dict
 
     anomaly_count = Column(Integer, nullable=False, default=0)
+    narrative = Column(Text, nullable=False, default="")
+    risk_level = Column(String(50), nullable=False, default="low")
 
     # Relationships
     job = relationship("Job", back_populates="summary")

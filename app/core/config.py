@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # Uploads Configuration
     UPLOAD_DIR: str = "./uploads"
     
+    # Gemini LLM Configuration
+    GEMINI_API_KEY: str = ""
+    GEMINI_API_URL: str = "https://gemini.googleapis.com/v1/models/gemini-1.5-flash:generateText"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

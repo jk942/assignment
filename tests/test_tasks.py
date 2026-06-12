@@ -49,9 +49,11 @@ def test_celery_pipeline_task_success(db_session, tmp_path):
         # Verify duplicate removed
         assert len([t for t in txns if t.txn_id == "TXN1001"]) == 1
 
-        # Verify category classification
+        # Verify category classification via LLM
         txn1000 = next(t for t in txns if t.txn_id == "TXN1000")
-        assert txn1000.category == "Uncategorised"
+        assert txn1000.category in {"Shopping", "Other"}
+        assert txn1000.llm_category == txn1000.category
+        assert txn1000.llm_failed is False
 
         # Verify anomalies detected
         txn1002 = next(t for t in txns if t.txn_id == "TXN1002")
